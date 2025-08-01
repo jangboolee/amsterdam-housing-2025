@@ -8,4 +8,5 @@ dependencies = [
     "beautifulsoup4>=4.13.4",
     "fake-useragent>=2.2.0",
     "requests>=2.32.4",
+    "tqdm>=4.67.1",
 ]
