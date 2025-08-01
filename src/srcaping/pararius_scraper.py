@@ -1,5 +1,8 @@
+from time import sleep
+
 import requests
 from fake_useragent import UserAgent
+from tqdm import tqdm
 
 
 class ParariusScraper:
@@ -23,9 +26,10 @@ class ParariusScraper:
 
     def run(self) -> bool:
         if self._get_max_pg_num():
-            for pg_num in range(1, self.max_pg_num):
+            for pg_num in tqdm(range(1, self.max_pg_num)):
                 pg_url = self.base_url + str(pg_num)
                 self._scrape_webpage(pg_url)
+                sleep(2)
             if self._create_dataframe():
                 return True
         return False
