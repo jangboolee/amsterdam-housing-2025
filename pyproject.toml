@@ -8,5 +8,6 @@ dependencies = [
     "beautifulsoup4>=4.13.4",
     "fake-useragent>=2.2.0",
     "requests>=2.32.4",
+    "sqlalchemy>=2.0.42",
     "tqdm>=4.67.1",
 ]
