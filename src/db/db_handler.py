@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from pandas import read_csv
-from sqlalchemy import Select, create_engine, insert, select
+from sqlalchemy import Select, create_engine, insert, select, update
 from sqlalchemy.orm import (
     DeclarativeBase,
     Session,
@@ -56,3 +56,37 @@ class DBHandler:
         with self.get_session() as session:
             stmt = stmt if stmt is not None else select(orm)
             return session.scalars(stmt).all()
+
+    def insert_row(self, orm: DeclarativeBase, data: dict) -> int | None:
+        stmt = insert(orm).returning(orm.id)
+        try:
+            with self.get_session() as session:
+                result = session.execute(stmt, data)
+                session.commit()
+                return result.scalar()
+        except Exception as e:
+            print(e)
+            session.rollback()
+        return None
+
+    def update_row(
+        self, orm: DeclarativeBase, row_id: int, data: dict
+    ) -> bool:
+        stmt = update(orm).where(orm.id == row_id).values(data)
+        try:
+            with self.get_session() as session:
+                session.execute(stmt)
+                session.commit()
+                return True
+        except Exception:
+            session.rollback()
+        return False
+
+    def bulk_insert(self, orm: DeclarativeBase, data: list[dict]) -> bool:
+        try:
+            with self.get_session() as session:
+                session.execute(insert(orm), data)
+                session.commit()
+                return True
+        except Exception:
+            return False
