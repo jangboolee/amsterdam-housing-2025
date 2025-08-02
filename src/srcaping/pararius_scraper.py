@@ -1,6 +1,8 @@
+import re
 from time import sleep
 
 import requests
+from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 from tqdm import tqdm
 
@@ -13,10 +15,38 @@ class ParariusScraper:
         self.scraped_data = None
 
     def _get_max_pg_num(self) -> bool:
-        # Get request for first page of the URL
-        res = requests.get(self.base_url + str(1))
-        res.raise_for_status()
-        pass
+        """Helper method to retrieve the maximum page number available for the
+        city's listing page.
+
+        Returns:
+            bool: True if successful, False if not.
+        """
+
+        # Try scraping the first page
+        try:
+            # Get request for first page of the URL
+            res = requests.get(self.base_url + str(1))
+            res.raise_for_status()
+            # Parse content of webpage with BeautifulSoup
+            soup = BeautifulSoup(res.text, "html.parser")
+            pg_links = soup.find_all(name="li", class_="pagination__item")
+            if pg_links:
+                # Extract number from page links
+                pattern = re.compile(r"\d+")
+                pg_nums = []
+                for pg_link in pg_links:
+                    match = re.search(pattern, pg_link.text)
+                    if match:
+                        pg_nums.append(int(match.group()))
+                # Get and save maximum page number
+                max_pg_num = max([int(pg_num) for pg_num in pg_nums])
+                self.max_pg_num = max_pg_num
+                return True
+        # If scraping the first page fails
+        except requests.exceptions.RequestException:
+            return False
+        # For all other failures
+        return False
 
     def _scrape_webpage(self, url: str) -> bool:
         pass
