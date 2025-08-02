@@ -4,41 +4,22 @@ from time import sleep
 import requests
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
-from sqlalchemy import select
 from tqdm import tqdm
 
 from src.db.db_handler import DBHandler
-from src.db.schema import City
 
 
-class ParariusScraper:
-    def __init__(self) -> None:
+class CityScraper:
+    def __init__(self, city_id: int, city_name: str) -> None:
+        self.city_id = city_id
+        self.city_name = city_name.lower()
         self.db_handler = DBHandler()
-        self.cities = None
-        self.base_url = "https://www.pararius.nl/koopwoningen/{}/page-{}"
+        self.base_url = (
+            f"https://www.pararius.nl/koopwoningen/{self.city_name}/page-"
+        )
         self.max_pg_num = -1
         self.headers = {"User-Agent": UserAgent(os="Linux").firefox}
         self.scraped_data = None
-        # Initialize scraper's parameters
-        self._get_cities()
-
-    def _get_cities(self) -> bool:
-        """Helper method to retrieve a dictionary of enabled cities for
-        scraping.
-
-        Returns:
-            bool: True after completion.
-        """
-
-        # Create SELECT statement for enabled cities
-        stmt = select(City).where(City.is_enabled)
-        # Retrieve enabled cities from city table
-        cities_raw = self.db_handler.read_table(City, stmt)
-        # Create and save dictionary of cities
-        cities = {i.id: i.name for i in cities_raw}
-        self.cities = cities
-
-        return True
 
     def _parse_webpage(self, url: str) -> BeautifulSoup | None:
         """Helper method to get the contents of a URL, then parse the contents
@@ -62,7 +43,7 @@ class ParariusScraper:
             return None
         return soup
 
-    def _get_max_pg_num(self, city: str) -> bool:
+    def _get_max_pg_num(self) -> bool:
         """Helper method to retrieve the maximum page number available for the
         city's listing page.
 
@@ -70,8 +51,8 @@ class ParariusScraper:
             bool: True if successful, False if not.
         """
 
-        # Parse content of webpage with BeautifulSoup
-        city_url = self.base_url.format(city.lower(), "1")
+        # Parse content of city's landing page with BeautifulSoup
+        city_url = self.base_url + "1"
         soup = self._parse_webpage(city_url)
         if soup:
             pg_links = soup.find_all(name="li", class_="pagination__item")
@@ -98,24 +79,19 @@ class ParariusScraper:
 
         pass
 
-    def _scrape_city(self, city: str) -> bool:
-        city_max_pg_num = self._get_max_pg_num(city.lower())
-        if city_max_pg_num:
-            for pg_num in tqdm(range(1, self.city_max_pg_num)):
-                pg_url = self.base_url + str(pg_num)
-                self._scrape_webpage(pg_url)
-                sleep(2)
-
     def _create_dataframe(self) -> bool:
         pass
 
     def run(self) -> bool:
-        for c_id, c_name in self.cities.items():
-            print(f"Scraping pararius for {c_name}...")
-            self._scrape_city(c_name)
+        max_pg_num = self._get_max_pg_num()
+        if max_pg_num:
+            for pg_num in tqdm(range(1, self.max_pg_num)):
+                pg_url = self.base_url + str(pg_num)
+                self._scrape_webpage(pg_url)
+                sleep(2)
         return False
 
 
 if __name__ == "__main__":
-    scraper = ParariusScraper()
+    scraper = CityScraper("Amsterdam")
     scraper.run()
