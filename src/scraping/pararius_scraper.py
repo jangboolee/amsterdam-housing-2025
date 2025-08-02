@@ -19,6 +19,8 @@ class ParariusScraper:
         self.max_pg_num = -1
         self.headers = {"User-Agent": UserAgent(os="Linux").firefox}
         self.scraped_data = None
+        # Initialize scraper's parameters
+        self._get_cities()
 
     def _get_cities(self) -> bool:
         """Helper method to retrieve a dictionary of enabled cities for
@@ -109,6 +111,7 @@ class ParariusScraper:
 
     def run(self) -> bool:
         for c_id, c_name in self.cities.items():
+            print(f"Scraping pararius for {c_name}...")
             self._scrape_city(c_name)
         return False
 
