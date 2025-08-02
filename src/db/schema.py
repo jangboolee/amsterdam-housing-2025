@@ -14,12 +14,13 @@ class City(Base):
     # Columns
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(nullable=False)
+    is_enabled: Mapped[bool] = mapped_column(nullable=False)
     # Relationships
     logs: Mapped[list["Log"]] = relationship(back_populates="city")
     listings: Mapped[list["Listing"]] = relationship(back_populates="city")
 
     def __repr__(self) -> str:
-        return f"City(id={self.id!r}, name={self.name!r}"
+        return f"City(id={self.id!r}, name={self.name!r})"
 
 
 class Log(Base):
@@ -41,7 +42,7 @@ class Log(Base):
             f"city_id={self.city_id!r}, "
             f"max_pg={self.max_pg!r}, "
             f"start_time={self.start_time!r}, "
-            f"end_time={self.end_time!r}"
+            f"end_time={self.end_time!r})"
         )
 
 
@@ -73,5 +74,5 @@ class Listing(Base):
             f"asking_price_eur={self.asking_price_eur!r}, "
             f"size_sqm={self.size_sqm!r}, "
             f"room_count={self.room_count!r}, "
-            f"year={self.year!r}"
+            f"year={self.year!r})"
         )
