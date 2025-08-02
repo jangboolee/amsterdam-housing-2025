@@ -14,6 +14,28 @@ class ParariusScraper:
         self.headers = {"User-Agent": UserAgent(os="Linux").firefox}
         self.scraped_data = None
 
+    def _parse_webpage(self, url: str) -> BeautifulSoup | None:
+        """Helper method to get the contents of a URL, then parse the contents
+        with BeautifulSoup.
+
+        Args:
+            url (str): URL to parse.
+
+        Returns:
+            BeautifulSoup | None: BeautifulSoup parser of the webpage if
+                scraping is successful, None if not.
+        """
+
+        try:
+            # Get request for URL
+            res = requests.get(self.base_url + str(1))
+            res.raise_for_status()
+            # Parse content of webpage with BeautifulSoup
+            soup = BeautifulSoup(res.text, "html.parser")
+        except requests.exceptions.RequestException:
+            return None
+        return soup
+
     def _get_max_pg_num(self) -> bool:
         """Helper method to retrieve the maximum page number available for the
         city's listing page.
@@ -22,13 +44,9 @@ class ParariusScraper:
             bool: True if successful, False if not.
         """
 
-        # Try scraping the first page
-        try:
-            # Get request for first page of the URL
-            res = requests.get(self.base_url + str(1))
-            res.raise_for_status()
-            # Parse content of webpage with BeautifulSoup
-            soup = BeautifulSoup(res.text, "html.parser")
+        # Parse content of webpage with BeautifulSoup
+        soup = self._parse_webpage(self.base_url + str(1))
+        if soup:
             pg_links = soup.find_all(name="li", class_="pagination__item")
             if pg_links:
                 # Extract number from page links
@@ -42,13 +60,15 @@ class ParariusScraper:
                 max_pg_num = max([int(pg_num) for pg_num in pg_nums])
                 self.max_pg_num = max_pg_num
                 return True
-        # If scraping the first page fails
-        except requests.exceptions.RequestException:
-            return False
-        # For all other failures
+        # If scraping fails
         return False
 
     def _scrape_webpage(self, url: str) -> bool:
+        soup = self._parse_webpage(url)
+        listings = soup.find_all(
+            name="li", class_="search-list__item search-list__item--listing"
+        )
+
         pass
 
     def _create_dataframe(self) -> bool:
