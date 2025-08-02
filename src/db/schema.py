@@ -31,7 +31,7 @@ class Log(Base):
     city_id: Mapped[int] = mapped_column(ForeignKey("city.id"), nullable=False)
     max_pg: Mapped[int] = mapped_column(nullable=False)
     start_time: Mapped[datetime] = mapped_column(nullable=False)
-    end_time: Mapped[datetime] = mapped_column(nullable=False)
+    end_time: Mapped[datetime] = mapped_column(nullable=True)
     # Relationships
     city: Mapped["City"] = relationship(back_populates="logs")
     listings: Mapped[list["Listing"]] = relationship(back_populates="log")
