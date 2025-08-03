@@ -23,6 +23,19 @@ class City(Base):
         return f"City(id={self.id!r}, name={self.name!r})"
 
 
+class StatusDict(Base):
+    __tablename__ = "status_dict"
+
+    # Columns
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(nullable=True)
+    # Relationships
+    listings: Mapped[list["Listing"]] = relationship(back_populates="status")
+
+    def __repr__(self) -> str:
+        return f"StatusDict(id={self.id!r}, name={self.name!r})"
+
+
 class Log(Base):
     __tablename__ = "log"
 
@@ -52,7 +65,9 @@ class Listing(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     log_id: Mapped[int] = mapped_column(ForeignKey("log.id"), nullable=False)
     city_id: Mapped[int] = mapped_column(ForeignKey("city.id"), nullable=False)
-    label: Mapped[str] = mapped_column(nullable=True)
+    status_id: Mapped[int] = mapped_column(
+        ForeignKey("status_dict.id"), nullable=True
+    )
     address: Mapped[str] = mapped_column(nullable=False)
     postcode: Mapped[str] = mapped_column(nullable=False)
     buurt: Mapped[str] = mapped_column(nullable=False)
@@ -65,6 +80,7 @@ class Listing(Base):
     gmaps_link: Mapped[str] = mapped_column(nullable=False)
     scrape_time: Mapped[datetime] = mapped_column(nullable=False)
     # Relationships
+    status: Mapped["StatusDict"] = relationship(back_populates="listings")
     log: Mapped["Log"] = relationship(back_populates="listings")
     city: Mapped["City"] = relationship(back_populates="listings")
 
