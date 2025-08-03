@@ -8,7 +8,7 @@ from fake_useragent import UserAgent
 from tqdm import tqdm
 
 from src.db.db_handler import DBHandler
-from src.db.schema import Listing
+from src.db.schema import Listing, StatusDict
 
 
 class CityScraper:
@@ -17,12 +17,15 @@ class CityScraper:
         self.city_id = city_id
         self.city_name = city_name.lower()
         self.db_handler = DBHandler()
+        self.status_mapper = None
         self.base_url = (
             f"https://www.pararius.nl/koopwoningen/{self.city_name}/page-"
         )
         self.max_pg_num = -1
         self.headers = {"User-Agent": UserAgent(os="Linux").firefox}
         self.scraped_data = []
+        # Populate instance variable for status mapper
+        self._get_status_mapper()
 
     @staticmethod
     def _get_current_time() -> datetime:
@@ -33,6 +36,11 @@ class CityScraper:
         """
 
         return datetime.now()
+
+    def _get_status_mapper(self) -> bool:
+        status_raw = self.db_handler.read_table(StatusDict)
+        self.status_mapper = {status.name: status.id for status in status_raw}
+        return self.status_mapper is not None
 
     def _parse_webpage(self, url: str) -> BeautifulSoup | None:
         """Helper method to get the contents of a URL, then parse the contents
@@ -85,11 +93,13 @@ class CityScraper:
         return False
 
     def _scrape_listing(self, listing: Tag) -> dict:
-        def get_label(element: Tag) -> str | None:
-            label = element.find("div", class_="listing-search-item__label")
-            if label:
-                return label.text.strip()
-            return None
+        def get_status_id(element: Tag) -> int:
+            status = element.find("div", class_="listing-search-item__label")
+            if status:
+                status_text = status.text.strip()
+                status_id = self.status_mapper.get(status_text, -1)
+                return status_id
+            return -1
 
         def get_address(element: Tag) -> str | int:
             address = element.h2.a.text.strip()
@@ -174,7 +184,7 @@ class CityScraper:
             return None
 
         # Scrape other listing metadata if listing is a property
-        label = get_label(listing)
+        status_id = get_status_id(listing)
         postcode = get_postcode(listing)
         buurt = get_buurt(listing)
         asking_price_eur = get_asking_price(listing)
@@ -187,7 +197,7 @@ class CityScraper:
         row = {
             "log_id": self.log_id,
             "city_id": self.city_id,
-            "label": label,
+            "status_id": status_id,
             "address": address,
             "postcode": postcode,
             "buurt": buurt,
