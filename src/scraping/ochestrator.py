@@ -83,6 +83,7 @@ class Orchestrator:
         row_id = self.db_handler.insert_row(Log, data)
         # Run the scraper if log record was inserted
         if row_id:
+            scraper.log_id = row_id
             scraper.run()
         return row_id
 
@@ -118,6 +119,7 @@ class Orchestrator:
             # Instantiate instance of CityScraper for the city
             scraper = CityScraper(c_id, c_name)
             # Start the scraper
+            print(f"Running scraper for {c_name}...")
             row_id = self._start_scraper(scraper)
             # End the scraper
             self._end_scraper(row_id, scraper)
