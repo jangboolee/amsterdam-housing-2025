@@ -9,7 +9,7 @@ from sqlalchemy.orm import (
     sessionmaker,
 )
 
-from src.db.schema import Base, City
+from src.db.schema import Base, City, StatusDict
 
 
 class DBHandler:
@@ -17,7 +17,10 @@ class DBHandler:
         self.uri = "sqlite:///data/pararius_scrape.db"
         self.engine = create_engine(self.uri)
         self.Session = sessionmaker(bind=self.engine)
-        self.orms = {City: Path(".") / "data" / "city.csv"}
+        self.orms = {
+            City: Path(".") / "data" / "city.csv",
+            StatusDict: Path(".") / "data" / "status_dict.csv",
+        }
         self._create_all()
 
     def get_session(self) -> Session:
@@ -58,6 +61,7 @@ class DBHandler:
         """
 
         for orm, file_path in self.orms.items():
+            print(f"Loading table for {orm.__tablename__}...")
             # Read the CSV file as a dataframe
             df = read_csv(file_path)
             # Write contents of the dataframe into the DB
