@@ -52,6 +52,7 @@ class Listing(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     log_id: Mapped[int] = mapped_column(ForeignKey("log.id"), nullable=False)
     city_id: Mapped[int] = mapped_column(ForeignKey("city.id"), nullable=False)
+    label: Mapped[str] = mapped_column(nullable=True)
     address: Mapped[str] = mapped_column(nullable=False)
     postcode: Mapped[str] = mapped_column(nullable=False)
     buurt: Mapped[str] = mapped_column(nullable=False)
@@ -60,6 +61,8 @@ class Listing(Base):
     room_count: Mapped[int] = mapped_column(nullable=False)
     year: Mapped[int] = mapped_column(nullable=False)
     makelaar: Mapped[str] = mapped_column(nullable=False)
+    pararius_link: Mapped[str] = mapped_column(nullable=False)
+    gmaps_link: Mapped[str] = mapped_column(nullable=False)
     scrape_time: Mapped[datetime] = mapped_column(nullable=False)
     # Relationships
     log: Mapped["Log"] = relationship(back_populates="listings")
