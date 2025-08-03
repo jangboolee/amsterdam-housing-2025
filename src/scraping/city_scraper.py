@@ -38,6 +38,12 @@ class CityScraper:
         return datetime.now()
 
     def _get_status_mapper(self) -> bool:
+        """Helper method to create a dictionary for status ID mapping.
+
+        Returns:
+            bool: True if mapper is created, False if not.
+        """
+
         status_raw = self.db_handler.read_table(StatusDict)
         self.status_mapper = {status.name: status.id for status in status_raw}
         return self.status_mapper is not None
@@ -60,9 +66,9 @@ class CityScraper:
             res.raise_for_status()
             # Parse content of webpage with BeautifulSoup
             soup = BeautifulSoup(res.text, "html.parser")
+            return soup
         except requests.exceptions.RequestException:
             return None
-        return soup
 
     def _get_max_pg_num(self) -> bool:
         """Helper method to retrieve the maximum page number available for the
@@ -93,7 +99,26 @@ class CityScraper:
         return False
 
     def _scrape_listing(self, listing: Tag) -> dict:
+        """Helper method to scrape metadata for a single property listing.
+
+        Args:
+            listing (Tag): HTML element of a single listing.
+
+        Returns:
+            dict: Scraped metadata to insert as a row into the DB.
+        """
+
         def get_status_id(element: Tag) -> int:
+            """Helper function to extract the listing's label and map the
+            corresponding status ID.
+
+            Args:
+                element (Tag): HTML element to parse.
+
+            Returns:
+                int: ID of the property status label.
+            """
+
             status = element.find("div", class_="listing-search-item__label")
             if status:
                 status_text = status.text.strip()
@@ -104,6 +129,16 @@ class CityScraper:
             return 0
 
         def get_address(element: Tag) -> str | int:
+            """Helper function to extract the listing's address and to check if
+            the listing is for a real estate project or a single property.
+
+            Args:
+                element (Tag): HTML element to parse.
+
+            Returns:
+                str | int: The address for a property, or -1 for a project.
+            """
+
             address = element.h2.a.text.strip()
             if "Project:" in address:
                 return -1
@@ -111,6 +146,15 @@ class CityScraper:
                 return address
 
         def get_postcode(element: Tag) -> str:
+            """Helper function to get the postcode of a property listing.
+
+            Args:
+                element (Tag): HTML element of a single listing.
+
+            Returns:
+                str: Postcode of the property listing.
+            """
+
             # Find the text containing the postcode
             text = element.find(
                 "div", class_="listing-search-item__sub-title"
@@ -120,6 +164,16 @@ class CityScraper:
             return re.search(pattern, text).group()
 
         def get_buurt(element: Tag) -> str:
+            """Helper function to get the neighborhood (buurt) of a property
+            listing.
+
+            Args:
+                element (Tag): HTML element of a single listing.
+
+            Returns:
+                str: Neighborhood (buurt) of the property listing.
+            """
+
             # Find the text containing the postcode
             text = element.find(
                 "div", class_="listing-search-item__sub-title"
@@ -129,8 +183,19 @@ class CityScraper:
             return re.search(pattern, text).group(1)
 
         def get_asking_price(element: Tag) -> int:
+            """Helper function to get the asking price of a property listing.
+
+            Args:
+                element (Tag): HTML element of a single listing.
+
+            Returns:
+                int: Asking price of the property listing, if available.
+                    Returns -1 if asking price is unavailable due to "prijs op
+                    aanvraag".
+            """
+
             # Find the text containing the asking price
-            text = listing.find(
+            text = element.find(
                 "div", class_="listing-search-item__price"
             ).text.strip()
             # Use regex for price extraction
@@ -145,8 +210,20 @@ class CityScraper:
             return -1
 
         def get_features(element: Tag) -> tuple[int, int, int]:
+            """Helper function to extract the following key listing features:
+                1. Size in square meters
+                2. Number of rooms
+                3. Construction year
+
+            Args:
+                element (Tag): HTML element of a single listing
+
+            Returns:
+                tuple[int, int, int]: The three properties of the listing.
+            """
+
             # Find ul container holding the key listing features
-            feature_container = listing.find_all(
+            feature_container = element.find_all(
                 "ul",
                 class_="illustrated-features illustrated-features--compact",
             )
@@ -164,16 +241,45 @@ class CityScraper:
             return tuple(features)
 
         def get_makelaar(element: Tag) -> str:
+            """Helper function to extract the name of the makelaar selling the
+            property.
+
+            Args:
+                element (Tag): HTML element of a single listing.
+
+            Returns:
+                str: Name of the makelaar selling the property.
+            """
+
             # Find the text containing the makelaar information
-            return listing.find(
+            return element.find(
                 "div", class_="listing-search-item__info"
             ).text.strip()
 
         def get_pararius_link(element: Tag) -> str:
+            """Helper function to get the Pararius link of the property.
+
+            Args:
+                element (Tag): HTML element of a single listing.
+
+            Returns:
+                str: URL of the property's listing page on Pararius.
+            """
+
             link = listing.h2.find("a")["href"]
             return f"https://www.pararius.nl{link}"
 
         def get_gmaps_link(address: str) -> str:
+            """Helper function to get the search results of the address on
+            Google Maps.
+
+            Args:
+                address (str): Extracted address of the property.
+
+            Returns:
+                str: Google Maps search results page for the address.
+            """
+
             base = "https://www.google.com/maps/place/{}"
             query = address.replace(" ", "+")
 
@@ -216,14 +322,18 @@ class CityScraper:
         return row
 
     def _scrape_webpage(self, url: str) -> bool:
+        # Parse the listings webpage
         soup = self._parse_webpage(url)
+        # Find all listings on the webpage
         listings = soup.find_all(
             name="li", class_="search-list__item search-list__item--listing"
         )
 
         scraped = []
         for listing in listings:
+            # Scrape a single listing from the webpage
             listing_data = self._scrape_listing(listing)
+            # Save the listing data if the listing is a property
             if listing_data:
                 scraped.append(listing_data)
 
@@ -232,10 +342,13 @@ class CityScraper:
         # Save scraped data as instance variable
         self.scraped_data.extend(scraped)
 
-    def _create_dataframe(self) -> bool:
-        pass
-
     def run(self) -> bool:
+        """Main method to run the core operations for the CityScraper.
+
+        Returns:
+            bool: True if scraping is successful, False if not.
+        """
+
         # Extract the maximum page number for the city's listing landing page
         max_pg_num = self._get_max_pg_num()
         # If maximum page number extraction is successful
@@ -247,6 +360,7 @@ class CityScraper:
                 self._scrape_webpage(pg_url)
                 # Add delay for polite scraping
                 sleep(2)
+            return True
         return False
 
 
