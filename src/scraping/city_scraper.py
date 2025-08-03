@@ -97,9 +97,11 @@ class CityScraper:
             status = element.find("div", class_="listing-search-item__label")
             if status:
                 status_text = status.text.strip()
+                # Map the status ID while defaulting to -1 for unseen values
                 status_id = self.status_mapper.get(status_text, -1)
                 return status_id
-            return -1
+            # Use 0 for listings without a status
+            return 0
 
         def get_address(element: Tag) -> str | int:
             address = element.h2.a.text.strip()
@@ -234,11 +236,16 @@ class CityScraper:
         pass
 
     def run(self) -> bool:
+        # Extract the maximum page number for the city's listing landing page
         max_pg_num = self._get_max_pg_num()
+        # If maximum page number extraction is successful
         if max_pg_num:
+            # Scrape each city's listing webpage
             for pg_num in tqdm(range(1, self.max_pg_num)):
+                # Generate webpage URL and scrape webpage
                 pg_url = self.base_url + str(pg_num)
                 self._scrape_webpage(pg_url)
+                # Add delay for polite scraping
                 sleep(2)
         return False
 
