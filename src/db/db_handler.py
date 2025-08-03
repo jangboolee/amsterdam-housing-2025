@@ -158,4 +158,5 @@ class DBHandler:
                 session.commit()
                 return True
         except Exception:
+            session.rollback()
             return False
