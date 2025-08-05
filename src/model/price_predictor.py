@@ -71,6 +71,8 @@ def engineer_features(
     ]
     # Filter columns with only useful columns
     df = listing[use_cols].copy()
+    # Drop properties without prices
+    df = df[df["asking_price_eur"] > 0]
     # Create age from year
     curr_year = datetime.now().year
     df["age"] = curr_year - df["year"]
@@ -98,6 +100,7 @@ def train_predict(df: pd.DataFrame):
     # Separate target variable from model features with log transformation
     X = df[features]
     y = df[target]
+    y_log = np.log1p(y)
 
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
@@ -106,7 +109,8 @@ def train_predict(df: pd.DataFrame):
         print(f"Fold {fold + 1}:")
 
         X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
-        y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
+        y_train_log, y_val_log = y_log.iloc[train_idx], y_log.iloc[val_idx]
+        y_val = y.iloc[val_idx]
 
         # Train LigtGBM regressor model
         model = lgb.LGBMRegressor(
@@ -118,24 +122,31 @@ def train_predict(df: pd.DataFrame):
             lambda_l1=0.1,
             lambda_l2=0.1,
             random_state=fold,
+            verbosity=-1,
         )
         model.fit(
             X_train,
-            y_train,
-            eval_set=[(X_val, y_val)],
+            y_train_log,
+            eval_set=[(X_val, y_val_log)],
             eval_metric="mae",
+            callbacks=[
+                lgb.early_stopping(50, verbose=False),
+                lgb.log_evaluation(0),
+            ],
         )
 
         # Predict and evaluate
-        y_pred = model.predict(X_val)
+        y_pred_log = model.predict(X_val)
+        y_pred_log = np.clip(y_pred_log, a_min=None, a_max=20)
+        y_pred = np.expm1(y_pred_log)
 
+        # Calculate and save evaluation metrics
         mae = mean_absolute_error(y_val, y_pred)
         rmse = np.sqrt(mean_squared_error(y_val, y_pred))
-
         mae_scores.append(mae)
         rmse_scores.append(rmse)
 
-        print(f"  MAE: {mae:.2f}, RMSE: {rmse:.2f}")
+        print(f"\tMAE: {mae:.2f}, RMSE: {rmse:.2f}")
 
     print(f"\nAverage MAE: {np.mean(mae_scores):.2f}")
     print(f"Average RMSE: {np.mean(rmse_scores):.2f}")
