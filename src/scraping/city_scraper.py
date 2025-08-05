@@ -15,7 +15,7 @@ class CityScraper:
     def __init__(self, city_id: int, city_name: str) -> None:
         self.log_id = None
         self.city_id = city_id
-        self.city_name = city_name.lower()
+        self.city_name = city_name.lower().replace(" ", "-")
         self.db_handler = DBHandler()
         self.status_mapper = None
         self.base_url = (
