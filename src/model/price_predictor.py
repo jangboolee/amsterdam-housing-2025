@@ -350,6 +350,8 @@ def predict_asking_price(
 
 
 def main() -> None:
+    """Main high-level entry point to execute all functions"""
+
     # Get dataframes of listing and postcode data
     listing_df = get_listing_data(Listing)
     postal_df = get_postal_df(Path(".") / "data" / "PC6_PUNTEN_MRA.csv")
