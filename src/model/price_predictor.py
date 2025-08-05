@@ -2,6 +2,7 @@ from datetime import datetime
 from pathlib import Path
 
 import lightgbm as lgb
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from haversine import haversine
@@ -28,6 +29,18 @@ def get_listing_data(orm: DeclarativeBase) -> pd.DataFrame:
 
 
 def get_postal_df(f_path: Path) -> pd.DataFrame:
+    """Function to read and process the CSV export of Amsterdam's
+    `PC6_PUNTEN_MRA` postal code dataset from
+    https://maps.amsterdam.nl/open_geodata/?LANG=en.
+
+    Args:
+        f_path (Path): Path of the CSV export file.
+
+    Returns:
+        pd.DataFrame: Processed dataframe containing the lat/long coordinates
+            per 6-digit postal code.
+    """
+
     df = pd.read_csv(f_path, delimiter=";")
     cols = ["Postcode6", "LNG", "LAT"]
 
@@ -41,17 +54,55 @@ def get_postal_df(f_path: Path) -> pd.DataFrame:
 
 
 def engineer_features(
-    listing: pd.DataFrame, postal: pd.DataFrame
+    listing: pd.DataFrame, postal: pd.DataFrame, for_pred: bool = False
 ) -> pd.DataFrame:
-    def map_postal_coords(df: pd.DataFrame, postal: pd.DataFrame):
+    """Function to run feature engineering on a dataframe of property listings.
+
+    Args:
+        listing (pd.DataFrame): Dataframe of Amsterdam property listings.
+        postal (pd.DataFrame): Dataframe of lat/long coordinates per postal
+            code.
+        for_pred (bool, optional): Flag to indicate if the feature engineering
+            is for an unseen property with no asking price. Defaults to False.
+
+    Returns:
+        pd.DataFrame: DataFrame after feature engineering.
+    """
+
+    def map_postal_coords(
+        df: pd.DataFrame, postal: pd.DataFrame
+    ) -> pd.DataFrame:
+        """Helper to map lat/long coordinates per postcode.
+
+        Args:
+            df (pd.DataFrame): DataFrame of property listings.
+            postal (pd.DataFrame): DataFrame containing lat/long coordinates
+                per postcode.
+
+        Returns:
+            pd.DataFrame: DataFrame with lat/long coordinates mapped based on
+                the property's 6-digit postal code.
+        """
+
         # Remove whitespace from listing postal codes
         df["postcode"] = df["postcode"].str.replace(" ", "")
         # Map lat/long coordinates
         df = df.merge(postal, on="postcode", how="inner")
         df.drop("postcode", axis=1, inplace=True)
+
         return df
 
-    def calc_dst_to_centraal(df: pd.DataFrame):
+    def calc_dst_to_centraal(df: pd.DataFrame) -> pd.DataFrame:
+        """Helper function to add the Haversine distance from the listing's
+        postal code to Amsterdam Centraal station as a feature.
+
+        Args:
+            df (pd.DataFrame): DataFrame after feature engineering.
+
+        Returns:
+            pd.DataFrame: DataFrame with distance feature added.
+        """
+
         # Lat/long coordinates of Amsterdam Centraal station
         centraal = (52.3791, 4.8994)
         # Calculate distance to Centraal station based on postal code
@@ -62,17 +113,26 @@ def engineer_features(
         return df
 
     # Columns to use for model training
-    use_cols = [
-        "postcode",
-        "asking_price_eur",
-        "size_sqm",
-        "room_count",
-        "year",
-    ]
+    if for_pred:
+        use_cols = [
+            "postcode",
+            "size_sqm",
+            "room_count",
+            "year",
+        ]
+    else:
+        use_cols = [
+            "postcode",
+            "asking_price_eur",
+            "size_sqm",
+            "room_count",
+            "year",
+        ]
     # Filter columns with only useful columns
     df = listing[use_cols].copy()
     # Drop properties without prices
-    df = df[df["asking_price_eur"] > 0]
+    if not for_pred:
+        df = df[df["asking_price_eur"] > 0]
     # Create age from year
     curr_year = datetime.now().year
     df["age"] = curr_year - df["year"]
@@ -85,7 +145,14 @@ def engineer_features(
     return df
 
 
-def train_predict(df: pd.DataFrame):
+def train_predict(df: pd.DataFrame, show_plot: bool = False) -> None:
+    """Train a LightGBM model based on scraped property listing data.
+
+    Args:
+        df (pd.DataFrame): Dataframe of feature-engineered property listing
+            data.
+    """
+
     # Define features and target variable
     features = [
         "size_sqm",
@@ -102,17 +169,19 @@ def train_predict(df: pd.DataFrame):
     y = df[target]
     y_log = np.log1p(y)
 
+    # Use KFolds to split data
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
-    mae_scores, rmse_scores = [], []
+    mae_scores, rmse_scores, importances = [], [], np.zeros(len(features))
     for fold, (train_idx, val_idx) in enumerate(kf.split(X)):
         print(f"Fold {fold + 1}:")
 
+        # Train and validate model
         X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
         y_train_log, y_val_log = y_log.iloc[train_idx], y_log.iloc[val_idx]
         y_val = y.iloc[val_idx]
 
-        # Train LigtGBM regressor model
+        # Fit LightGBM regressor model trained on the fold
         model = lgb.LGBMRegressor(
             objective="regression",
             n_estimators=1000,
@@ -146,16 +215,178 @@ def train_predict(df: pd.DataFrame):
         mae_scores.append(mae)
         rmse_scores.append(rmse)
 
+        # Save feature importances
+        importances += model.feature_importances_
+
         print(f"\tMAE: {mae:.2f}, RMSE: {rmse:.2f}")
 
     print(f"\nAverage MAE: {np.mean(mae_scores):.2f}")
     print(f"Average RMSE: {np.mean(rmse_scores):.2f}")
 
+    def plot_importance(importances: np.array, kf: KFold) -> None:
+        """Helper function to visually plot the average importance per feature.
 
-if __name__ == "__main__":
+        Args:
+            importances (np.array): Array of feature importances.
+            kf (KFold): KFolds used for model training.
+        """
+
+        avg_importance = importances / kf.get_n_splits()
+        importance_df = pd.DataFrame(
+            {"feature": features, "importance": avg_importance}
+        ).sort_values(by="importance", ascending=False)
+
+        plt.figure(figsize=(8, 6))
+        plt.barh(importance_df["feature"], importance_df["importance"])
+        plt.gca().invert_yaxis()
+        plt.xlabel("Average Feature Importance")
+        plt.title("LightGBM Feature Importance Across Folds")
+        plt.tight_layout()
+        plt.show()
+
+    if show_plot:
+        plot_importance(importances, kf)
+
+    # Train model on entire dataset
+    final_model = lgb.LGBMRegressor(
+        objective="regression",
+        n_estimators=1000,
+        learning_rate=0.05,
+        max_depth=6,
+        num_leaves=31,
+        lambda_l1=0.1,
+        lambda_l2=0.1,
+        random_state=42,
+        verbosity=-1,
+    )
+    final_model.fit(X, y_log)
+
+    return final_model, np.mean(mae_scores)
+
+
+def predict_asking_price(
+    model: lgb.LGBMRegressor,
+    features: dict,
+    postal: pd.DataFrame,
+    avg_mae: float,
+    show_plot: bool = False,
+) -> float:
+    """Function to predict an unseen property's asking price using the trained
+    LightGBM model.
+
+    Args:
+        model (lgb.LGBMRegressor): Trained LightGBM regression model.
+        features (dict): Features of the unseen property.
+        postal (pd.DataFrame): DataFrame of lat/long coordinates per postal
+            code.
+        avg_mae (float): Average Mean Absolute Error for the model.
+
+    Returns:
+        float: Predicted asking price in Euros.
+    """
+
+    # Create dataframe of the listing to predict asking price for
+    df = pd.DataFrame([features])
+    # Engineer features for the listing
+    df = engineer_features(df, postal, for_pred=True)
+    # Predict price using model
+    log_pred = model.predict(df)
+    pred_price = np.expm1(log_pred[0])
+
+    # Get prediction boundary
+    lower = pred_price - avg_mae
+    upper = pred_price + avg_mae
+
+    # Get actual figure
+    actual = features["actual"]
+
+    print(f"Predicted asking price: €{pred_price:,.2f}")
+    print(f"Expected range (±MAE): €{lower:,.0f} – €{upper:,.0f}")
+    print(f"Deviation: €{actual - pred_price:,.2f}")
+
+    def plot_prediction(
+        address: str, pred: float, actual: int, mae: float
+    ) -> None:
+        """Helper function to plot predicted asking price vs. actual asking
+        price.
+
+        Args:
+            address (str): Address of the property.
+            pred (float): Model's predicted asking price.
+            actual (int): Actual asking price.
+            mae (float): Average Mean Absolute Error of the model.
+        """
+
+        fig, ax = plt.subplots(figsize=(6, 8))
+        # Draw error bar of prediction and MAE
+        ax.errorbar(
+            x=[0],
+            y=[pred_price],
+            yerr=[[avg_mae], [avg_mae]],
+            fmt="o",
+            color="lightblue",
+            capsize=10,
+            label="Predicted ± MAE",
+        )
+        # Plot actual asking price
+        ax.scatter(0, actual, color="red", label="Actual Price", zorder=10)
+
+        # Draw line connecting prediction to actual
+        ax.plot([0, 0], [pred_price, actual], linestyle="--", color="gray")
+
+        ax.set_xticks([0])
+        ax.set_xticklabels([address])
+        ax.set_ylabel("Price (€)")
+        ax.set_title(f"Predicted vs Actual: {address}")
+        ax.legend()
+        ax.grid(axis="y", linestyle="--", alpha=0.5)
+        plt.tight_layout()
+        plt.show()
+
+    if show_plot:
+        plot_prediction(features["address"], pred_price, actual, avg_mae)
+
+    return pred_price
+
+
+def main() -> None:
     # Get dataframes of listing and postcode data
     listing_df = get_listing_data(Listing)
     postal_df = get_postal_df(Path(".") / "data" / "PC6_PUNTEN_MRA.csv")
     # Do feature engineering
     df = engineer_features(listing_df, postal_df)
-    train_predict(df)
+    # Train and return model
+    model, avg_mae = train_predict(df, show_plot=False)
+
+    properties = [
+        {
+            "actual": 699000,
+            "address": "Sarphatistraat 74 4",
+            "size_sqm": 65,
+            "room_count": 4,
+            "year": 1811,
+            "postcode": "1018 GR",
+        },
+        {
+            "actual": 475000,
+            "address": "Aaf Bouberstraat 76",
+            "size_sqm": 85,
+            "room_count": 5,
+            "year": 1984,
+            "postcode": "1065 LT",
+        },
+        {
+            "actual": 850000,
+            "address": "Prinsengracht 151 D",
+            "size_sqm": 113,
+            "room_count": 5,
+            "year": 1760,
+            "postcode": "1015 DR",
+        },
+    ]
+    for prop in properties:
+        predict_asking_price(model, prop, postal_df, avg_mae, show_plot=True)
+
+
+if __name__ == "__main__":
+    main()
