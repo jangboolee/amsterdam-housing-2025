@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pandas import read_csv
+from pandas import read_csv, read_sql_query
 from sqlalchemy import Select, create_engine, insert, select, update
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -81,7 +81,10 @@ class DBHandler:
         return all([self._drop_all(), self._create_all(), self._load_tables()])
 
     def read_table(
-        self, orm: DeclarativeBase, stmt: Select | None = None
+        self,
+        orm: DeclarativeBase,
+        stmt: Select | None = None,
+        as_df: bool = False,
     ) -> list[DeclarativeBase]:
         """Method to read a table in the DB, using an optional SELECT statement
         object for custom reading.
@@ -90,6 +93,8 @@ class DBHandler:
             orm (DeclarativeBase): ORM class of the table to read.
             stmt (Select | None, optional): Custom SELECT statement object.
                 Defaults to None.
+            as_df (bool, optional): Flag to return results as a Pandas
+                dataframe. Defaults to None.
 
         Returns:
             list[DeclarativeBase]: List of ORM objects for the table's rows.
@@ -97,7 +102,10 @@ class DBHandler:
 
         with self.get_session() as session:
             stmt = stmt if stmt is not None else select(orm)
-            return session.scalars(stmt).all()
+            if as_df:
+                return read_sql_query(sql=stmt, con=self.engine)
+            else:
+                return session.scalars(stmt).all()
 
     def insert_row(self, orm: DeclarativeBase, data: dict) -> int | None:
         """Method to insert a single row into a table in the DB.
