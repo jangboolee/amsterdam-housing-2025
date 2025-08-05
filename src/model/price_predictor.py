@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from haversine import haversine
 from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.model_selection import KFold
 from sqlalchemy.orm import DeclarativeBase
 
 from src.db.db_handler import DBHandler
@@ -94,29 +95,50 @@ def train_predict(df: pd.DataFrame):
     ]
     target = "asking_price_eur"
 
-    # Separate target variable from model features
+    # Separate target variable from model features with log transformation
     X = df[features]
     y = df[target]
 
-    # Split listing data to traing and validaiton sets
-    X_train, X_val, y_train, y_val = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
+    kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
-    # Train LigtGBM regressor model
-    model = lgb.LGBMRegressor(
-        objective="regression", metric="mae", random_state=42, n_estimators=100
-    )
-    model.fit(X_train, y_train)
+    mae_scores, rmse_scores = [], []
+    for fold, (train_idx, val_idx) in enumerate(kf.split(X)):
+        print(f"Fold {fold + 1}:")
 
-    # Predict and evaluate
-    y_pred = model.predict(X_val)
+        X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
+        y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
 
-    mae = mean_absolute_error(y_val, y_pred)
-    rmse = np.sqrt(mean_squared_error(y_val, y_pred))
+        # Train LigtGBM regressor model
+        model = lgb.LGBMRegressor(
+            objective="regression",
+            n_estimators=1000,
+            learning_rate=0.05,
+            max_depth=6,
+            num_leaves=31,
+            lambda_l1=0.1,
+            lambda_l2=0.1,
+            random_state=fold,
+        )
+        model.fit(
+            X_train,
+            y_train,
+            eval_set=[(X_val, y_val)],
+            eval_metric="mae",
+        )
 
-    print("MAE: ", mae)
-    print("RMSE: ", rmse)
+        # Predict and evaluate
+        y_pred = model.predict(X_val)
+
+        mae = mean_absolute_error(y_val, y_pred)
+        rmse = np.sqrt(mean_squared_error(y_val, y_pred))
+
+        mae_scores.append(mae)
+        rmse_scores.append(rmse)
+
+        print(f"  MAE: {mae:.2f}, RMSE: {rmse:.2f}")
+
+    print(f"\nAverage MAE: {np.mean(mae_scores):.2f}")
+    print(f"Average RMSE: {np.mean(rmse_scores):.2f}")
 
 
 if __name__ == "__main__":
