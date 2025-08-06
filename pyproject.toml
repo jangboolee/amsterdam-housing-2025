@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "beautifulsoup4>=4.13.4",
     "fake-useragent>=2.2.0",
+    "folium>=0.20.0",
     "geopandas>=1.1.1",
     "haversine>=2.9.0",
     "lightgbm>=4.6.0",
