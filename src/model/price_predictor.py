@@ -362,6 +362,7 @@ def main() -> None:
     # Train and return model
     model, avg_mae = train_predict(df, show_plot=False)
 
+    # Features of properties to predict prices for
     properties = [
         {
             "actual": 699000,
