@@ -8,17 +8,13 @@ import pandas as pd
 from haversine import haversine
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.model_selection import KFold
-from sqlalchemy.orm import DeclarativeBase
 
 from src.db.db_handler import DBHandler
 from src.db.schema import Listing
 
 
-def get_listing_data(orm: DeclarativeBase) -> pd.DataFrame:
+def get_listing_data() -> pd.DataFrame:
     """Function to retrieve scraped data as a Pandas dataframe.
-
-    Args:
-        orm (DeclarativeBase): ORM of scraped listing data.
 
     Returns:
         pd.DataFrame: Dataframe of scraped listing data.
@@ -28,18 +24,17 @@ def get_listing_data(orm: DeclarativeBase) -> pd.DataFrame:
     return handler.read_table(Listing, as_df=True)
 
 
-def get_postal_df(f_path: Path) -> pd.DataFrame:
+def get_postal_df() -> pd.DataFrame:
     """Function to read and process the CSV export of Amsterdam's
     `PC6_PUNTEN_MRA` postal code dataset from
     https://maps.amsterdam.nl/open_geodata/?LANG=en.
-
-    Args:
-        f_path (Path): Path of the CSV export file.
 
     Returns:
         pd.DataFrame: Processed dataframe containing the lat/long coordinates
             per 6-digit postal code.
     """
+
+    f_path = Path(".") / "data" / "files" / "PC6_PUNTEN_MRA.csv"
 
     df = pd.read_csv(f_path, delimiter=";")
     cols = ["Postcode6", "LNG", "LAT"]
@@ -354,9 +349,7 @@ def main() -> None:
 
     # Get dataframes of listing and postcode data
     listing_df = get_listing_data(Listing)
-    postal_df = get_postal_df(
-        Path(".") / "data" / "files" / "PC6_PUNTEN_MRA.csv"
-    )
+    postal_df = get_postal_df()
     # Do feature engineering
     df = engineer_features(listing_df, postal_df)
     # Train and return model
