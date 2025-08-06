@@ -18,8 +18,8 @@ class DBHandler:
         self.engine = create_engine(self.uri)
         self.Session = sessionmaker(bind=self.engine)
         self.orms = {
-            City: Path(".") / "data" / "city.csv",
-            StatusDict: Path(".") / "data" / "status_dict.csv",
+            City: Path(".") / "data" / "files" / "city.csv",
+            StatusDict: Path(".") / "data" / "files" / "status_dict.csv",
         }
         self._create_all()
 

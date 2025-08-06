@@ -354,7 +354,9 @@ def main() -> None:
 
     # Get dataframes of listing and postcode data
     listing_df = get_listing_data(Listing)
-    postal_df = get_postal_df(Path(".") / "data" / "PC6_PUNTEN_MRA.csv")
+    postal_df = get_postal_df(
+        Path(".") / "data" / "files" / "PC6_PUNTEN_MRA.csv"
+    )
     # Do feature engineering
     df = engineer_features(listing_df, postal_df)
     # Train and return model
