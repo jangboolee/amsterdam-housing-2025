@@ -295,9 +295,10 @@ def predict_asking_price(
     # Get actual figure
     actual = features["actual"]
 
+    print(f"Actual asking price: €{actual:,.2f}")
     print(f"Predicted asking price: €{pred_price:,.2f}")
-    print(f"Expected range (±MAE): €{lower:,.0f} – €{upper:,.0f}")
     print(f"Deviation: €{actual - pred_price:,.2f}")
+    print(f"Expected range (±MAE): €{lower:,.0f} – €{upper:,.0f}")
 
     def plot_prediction(
         address: str, pred: float, actual: int, mae: float
@@ -348,7 +349,7 @@ def main() -> None:
     """Main high-level entry point to execute all functions"""
 
     # Get dataframes of listing and postcode data
-    listing_df = get_listing_data(Listing)
+    listing_df = get_listing_data()
     postal_df = get_postal_df()
     # Do feature engineering
     df = engineer_features(listing_df, postal_df)
@@ -358,28 +359,28 @@ def main() -> None:
     # Features of properties to predict prices for
     properties = [
         {
-            "actual": 699000,
-            "address": "Sarphatistraat 74 4",
-            "size_sqm": 65,
+            "address": "Praterlaan 64",
+            "actual": 595000,
+            "size_sqm": 96,
             "room_count": 4,
-            "year": 1811,
-            "postcode": "1018 GR",
+            "year": 2003,
+            "postcode": "1098 WR",
         },
         {
-            "actual": 475000,
-            "address": "Aaf Bouberstraat 76",
-            "size_sqm": 85,
-            "room_count": 5,
-            "year": 1984,
-            "postcode": "1065 LT",
+            "actual": 280000,
+            "address": "Samosstraat 58",
+            "size_sqm": 31,
+            "room_count": 1,
+            "year": 2003,
+            "postcode": "1060 TA",
         },
         {
-            "actual": 850000,
-            "address": "Prinsengracht 151 D",
-            "size_sqm": 113,
+            "actual": 795000,
+            "address": "Le Tourmalet 24",
+            "size_sqm": 136,
             "room_count": 5,
-            "year": 1760,
-            "postcode": "1015 DR",
+            "year": 1995,
+            "postcode": "1060 NX",
         },
     ]
     for prop in properties:
