@@ -51,7 +51,7 @@ The trained model is not very accurate due to limited training data and features
 * The results use currently available property listings, so data is limited ($n=1911$).
   * Most 6-digit postcodes only contain a handful of listed properties, and many don't contain any listed properties at all, which makes grouping the data at the 4-digit postcode level more meaningful.
 * For true property values, purchase price should be used instead of asking price, but purchase price is not publicly available.
-* The scraping was only done on a city's property listing page (ex: [Amstedam koopwoningen listing page](https://www.pararius.nl/koopwoningen/amsterdam)), and not on individual property listing pages (ex: [property listing page for Zamenhofsraat 68](https://www.pararius.nl/huis-te-koop/amsterdam/ca317654/zamenhofstraat). Therefore, only key attributes were retrieved per property, and many other attributes that can significantly impact a property's value (ex: erfpacht, energy label, VvE costs, terrace/garden availability, etc.) are not accounted for.
+* The scraping was only done on a city's property listing page (ex: [Amstedam koopwoningen listing page](https://www.pararius.nl/koopwoningen/amsterdam)), and not on individual property listing pages (ex: [property listing page for Zamenhofsraat 68](https://www.pararius.nl/huis-te-koop/amsterdam/ca317654/zamenhofstraat)). Therefore, only key attributes were retrieved per property, and many other attributes that can significantly impact a property's value (ex: erfpacht, energy label, VvE costs, terrace/garden availability, etc.) are not accounted for.
 
 ## DB schema
 
