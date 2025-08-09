@@ -95,6 +95,14 @@ def plot_postcode(df: pd.DataFrame, geojson_path: Path, column: str) -> bool:
     gdf_merged = gdf.merge(
         df, left_on=column, right_on=column.lower(), how="left"
     )
+    # Create coordinates column
+    gdf_merged["coords"] = gdf_merged["geometry"].apply(
+        lambda x: x.representative_point().coords[:]
+    )
+    gdf_merged["coords"] = [coords[0] for coords in gdf_merged["coords"]]
+
+    # Ensure GeoDataFrame is in WGS84 (required for folium)
+    gdf_merged = gdf_merged.to_crs(epsg=4326)
 
     def show_save_static_plots(show: bool = False) -> bool:
         """Helper function to display and save static postcode-level
@@ -122,6 +130,15 @@ def plot_postcode(df: pd.DataFrame, geojson_path: Path, column: str) -> bool:
             ax=ax,
             missing_kwds={"color": "lightgrey", "label": "No listings"},
         )
+
+        # Create postcode label based on coordinates for postcode4
+        if column == "Postcode4":
+            for idx, row in gdf_merged.iterrows():
+                plt.annotate(
+                    text=row[column],
+                    xy=row["coords"],
+                    horizontalalignment="center",
+                )
 
         # Set x/y limits to remove white margins
         ax.set_xlim(bounds[0], bounds[2])
@@ -154,7 +171,10 @@ def plot_postcode(df: pd.DataFrame, geojson_path: Path, column: str) -> bool:
         """
 
         # Get center of map
-        map_center = gdf_merged.geometry.union_all().centroid.coords[:][0]
+        center_lng, center_lat = (
+            gdf_merged.geometry.union_all().centroid.coords[:][0]
+        )
+        map_center = (center_lat, center_lng)
 
         # Create folium map
         m = folium.Map(
@@ -163,9 +183,9 @@ def plot_postcode(df: pd.DataFrame, geojson_path: Path, column: str) -> bool:
 
         # Add choropleth layer to folium map
         folium.Choropleth(
-            geo_data=gdf_merged,
+            geo_data=gdf_merged[[column, "geometry"]],
             name="Price per sqm",
-            data=gdf_merged,
+            data=gdf_merged[[column, "price_per_sqm"]],
             columns=[column, "price_per_sqm"],
             key_on=f"feature.properties.{column}",
             fill_color="YlGnBu",
@@ -217,12 +237,12 @@ def main() -> None:
     to_plot = (
         (
             pc4_median,
-            Path(".") / "data" / "files" / "postcode4_latlng.geojson",
+            Path(".") / "data" / "files" / "postcode4_lnglat.geojson",
             "Postcode4",
         ),
         (
             pc6_median,
-            Path(".") / "data" / "files" / "postcode6_latlng.geojson",
+            Path(".") / "data" / "files" / "postcode6_lnglat.geojson",
             "Postcode6",
         ),
     )
