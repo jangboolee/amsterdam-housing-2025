@@ -30,7 +30,7 @@ The trained model is not very accurate due to limited training data and features
 
 * Static map
   
-  <img src="https://github.com/jangboolee/amsterdam-housing-2025/blob/main/output/median_per_postcode4.png" />
+  <img width="5420" height="3570" alt="median_per_postcode4" src="https://github.com/user-attachments/assets/5d0c4f7a-ceb4-40f5-a0d3-5e10e9d75203" />
 
 * Interactive map
 
@@ -40,7 +40,7 @@ The trained model is not very accurate due to limited training data and features
 
 * Static map
 
-  <img src="https://github.com/jangboolee/amsterdam-housing-2025/blob/main/output/median_per_postcode6.png" />
+  <img width="5419" height="3575" alt="median_per_postcode6" src="https://github.com/user-attachments/assets/4271e3d6-31e1-4f03-94eb-87fd3692898c" />
 
 * Interactive map
 
