@@ -354,7 +354,7 @@ class CityScraper:
         # If maximum page number extraction is successful
         if max_pg_num:
             # Scrape each city's listing webpage
-            for pg_num in tqdm(range(1, self.max_pg_num)):
+            for pg_num in tqdm(range(1, self.max_pg_num + 1)):
                 # Generate webpage URL and scrape webpage
                 pg_url = self.base_url + str(pg_num)
                 self._scrape_webpage(pg_url)
