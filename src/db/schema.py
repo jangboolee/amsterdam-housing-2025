@@ -12,7 +12,7 @@ class City(Base):
     __tablename__ = "city"
 
     # Columns
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(nullable=False)
     is_enabled: Mapped[bool] = mapped_column(nullable=False)
     # Relationships
@@ -27,7 +27,7 @@ class StatusDict(Base):
     __tablename__ = "status_dict"
 
     # Columns
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(nullable=True)
     # Relationships
     listings: Mapped[list["Listing"]] = relationship(back_populates="status")
@@ -40,7 +40,7 @@ class Log(Base):
     __tablename__ = "log"
 
     # Columns
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     city_id: Mapped[int] = mapped_column(ForeignKey("city.id"), nullable=False)
     max_pg: Mapped[int] = mapped_column(nullable=False)
     start_time: Mapped[datetime] = mapped_column(nullable=False)
@@ -62,7 +62,7 @@ class Log(Base):
 class Listing(Base):
     __tablename__ = "listing"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     log_id: Mapped[int] = mapped_column(ForeignKey("log.id"), nullable=False)
     city_id: Mapped[int] = mapped_column(ForeignKey("city.id"), nullable=False)
     status_id: Mapped[int] = mapped_column(
