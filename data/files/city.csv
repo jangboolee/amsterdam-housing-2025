@@ -1,3 +1,4 @@
 id,name,is_enabled
 1,Amsterdam,TRUE
 2,Rotterdam,FALSE
+3,Amstelveen,FALSE
