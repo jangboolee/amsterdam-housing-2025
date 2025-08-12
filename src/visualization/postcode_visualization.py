@@ -184,7 +184,7 @@ def plot_postcode(df: pd.DataFrame, geojson_path: Path, column: str) -> bool:
             columns=[column, "price_per_sqm"],
             key_on=f"feature.properties.{column}",
             fill_color="YlGnBu",
-            fill_opacity=0.7,
+            fill_opacity=0.4,
             line_opacity=0.2,
             nan_fill_color="lightgray",
             legend_name="Median price per sqm (€)",
