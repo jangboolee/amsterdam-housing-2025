@@ -100,9 +100,10 @@ def plot_postcode(df: pd.DataFrame, geojson_path: Path, column: str) -> bool:
         lambda x: x.representative_point().coords[:]
     )
     gdf_merged["coords"] = [coords[0] for coords in gdf_merged["coords"]]
-
-    # Ensure GeoDataFrame is in WGS84 (required for folium)
-    gdf_merged = gdf_merged.to_crs(epsg=4326)
+    # Create separate price column for map display
+    gdf_merged["price_per_sqm_display"] = gdf_merged["price_per_sqm"].apply(
+        lambda x: f"{x:,.2f}"
+    )
 
     def show_save_static_plots(show: bool = False) -> bool:
         """Helper function to display and save static postcode-level
@@ -115,9 +116,6 @@ def plot_postcode(df: pd.DataFrame, geojson_path: Path, column: str) -> bool:
         Returns:
             bool: True after completion.
         """
-
-        # Get bounds of the merged GeoDataFrame
-        bounds = gdf_merged.total_bounds
 
         # Plot median asking price per postcode
         fig, ax = plt.subplots(figsize=(20, 12))
@@ -138,11 +136,8 @@ def plot_postcode(df: pd.DataFrame, geojson_path: Path, column: str) -> bool:
                     text=row[column],
                     xy=row["coords"],
                     horizontalalignment="center",
+                    bbox=dict(facecolor="white", alpha=0.5, edgecolor="none"),
                 )
-
-        # Set x/y limits to remove white margins
-        ax.set_xlim(bounds[0], bounds[2])
-        ax.set_ylim(bounds[1], bounds[3])
 
         ax.set_title("Median asking price per sqm", fontsize=16)
         ax.axis("off")
@@ -192,12 +187,12 @@ def plot_postcode(df: pd.DataFrame, geojson_path: Path, column: str) -> bool:
             fill_opacity=0.7,
             line_opacity=0.2,
             nan_fill_color="lightgray",
-            legend_name="Price per sqm (€)",
+            legend_name="Median price per sqm (€)",
         ).add_to(m)
         # Add tooltips to folium map
         tooltip = folium.GeoJsonTooltip(
-            fields=[column, "price_per_sqm"],
-            aliases=["Postcode", "Price €/sqm"],
+            fields=[column, "price_per_sqm_display"],
+            aliases=["Postcode", "Median price per sqm (€)"],
         )
         folium.GeoJson(
             gdf_merged,
