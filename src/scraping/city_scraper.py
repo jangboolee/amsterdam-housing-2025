@@ -231,14 +231,21 @@ class CityScraper:
             feature_elems = feature_container[0].find_all("li")
 
             pattern = re.compile(r"\d+")
-            features = []
+            size, rooms, year = None, None, None
             # Get size, room count, and year
             for feature in feature_elems:
                 text = feature.text.strip()
-                feature_str = re.search(pattern, text).group()
-                features.append(int(feature_str))
+                if "m²" in text:
+                    size_str = re.search(pattern, text).group()
+                    size = int(size_str)
+                if "kamer" in text:
+                    rooms_str = re.search(pattern, text).group()
+                    rooms = int(rooms_str)
+                else:
+                    year_str = re.search(pattern, text).group()
+                    year = int(year_str)
 
-            return tuple(features)
+            return size, rooms, year
 
         def get_makelaar(element: Tag) -> str:
             """Helper function to extract the name of the makelaar selling the
@@ -362,8 +369,3 @@ class CityScraper:
                 sleep(2)
             return True
         return False
-
-
-if __name__ == "__main__":
-    scraper = CityScraper(1, "Amsterdam")
-    scraper.run()
