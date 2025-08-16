@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pandas import read_csv, read_sql_query
+from pandas import DataFrame, read_csv, read_sql_query
 from sqlalchemy import Select, create_engine, insert, select, update
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -85,7 +85,7 @@ class DBHandler:
         orm: DeclarativeBase,
         stmt: Select | None = None,
         as_df: bool = False,
-    ) -> list[DeclarativeBase]:
+    ) -> list[DeclarativeBase] | DataFrame:
         """Method to read a table in the DB, using an optional SELECT statement
         object for custom reading.
 
@@ -97,7 +97,8 @@ class DBHandler:
                 dataframe. Defaults to None.
 
         Returns:
-            list[DeclarativeBase]: List of ORM objects for the table's rows.
+            list[DeclarativeBase] | DataFrame: Table data as a list of ORM
+                objects or as a dataframe
         """
 
         with self.get_session() as session:
