@@ -222,13 +222,11 @@ class CityScraper:
                 tuple[int, int, int]: The three properties of the listing.
             """
 
-            # Find ul container holding the key listing features
-            feature_container = element.find_all(
-                "ul",
-                class_="illustrated-features illustrated-features--compact",
+            # Find key listing features
+            feature_elems = element.find_all(
+                "li",
+                class_="illustrated-features__item",
             )
-            # Extract li elements of the key listing features
-            feature_elems = feature_container[0].find_all("li")
 
             pattern = re.compile(r"\d+")
             size, rooms, year = None, None, None
@@ -238,7 +236,7 @@ class CityScraper:
                 if "m²" in text:
                     size_str = re.search(pattern, text).group()
                     size = int(size_str)
-                if "kamer" in text:
+                elif "kamer" in text:
                     rooms_str = re.search(pattern, text).group()
                     rooms = int(rooms_str)
                 else:
