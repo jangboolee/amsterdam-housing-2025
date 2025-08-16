@@ -125,8 +125,3 @@ class Orchestrator:
             self._end_scraper(row_id, scraper)
 
         return True
-
-
-if __name__ == "__main__":
-    o = Orchestrator()
-    o.run()
