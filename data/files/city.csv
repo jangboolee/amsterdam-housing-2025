@@ -1,4 +1,11 @@
 id,name,is_enabled
 1,Amsterdam,TRUE
 2,Rotterdam,FALSE
-3,Amstelveen,FALSE
+3,Den Haag,FALSE
+4,Utrecht,FALSE
+5,Eindhoven,FALSE
+6,Tilburg,FALSE
+7,Groningen,FALSE
+8,Almere,FALSE
+9,Breda,FALSE
+10,Nijmegen,FALSE
