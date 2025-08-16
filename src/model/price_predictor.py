@@ -8,6 +8,7 @@ import pandas as pd
 from haversine import haversine
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.model_selection import KFold
+from sqlalchemy import select
 
 from src.db.db_handler import DBHandler
 from src.db.schema import Listing
@@ -21,7 +22,9 @@ def get_listing_data() -> pd.DataFrame:
     """
 
     handler = DBHandler()
-    return handler.read_table(Listing, as_df=True)
+    # SELECT statement for only Amsterdam listings
+    stmt = select(Listing).where(Listing.city_id == 1)
+    return handler.read_table(Listing, stmt, as_df=True)
 
 
 def get_postal_df() -> pd.DataFrame:
