@@ -2,6 +2,26 @@
 
 Scrape, analyze, predict, and visualize the Amsterdam housing market with listed property data from [Pararius.nl](https://www.pararius.nl/).
 
+## DB schema
+
+<img width="860" height="632" alt="amsterdam_scraping" src="https://github.com/user-attachments/assets/421cc1a9-7cd3-4583-b0ac-7340f711c85d" />
+
+## Scraping
+
+The scraping is orchestrated using a singleton instance of an `Orchestrator` class that handles the instantiations and executions of instances of the `CityScraper` class:
+
+<img width="441" height="664" alt="UML_scraping-Page-1 drawio" src="https://github.com/user-attachments/assets/6d1b6c08-a89e-439c-90cc-6fbf6911e54f" />
+
+Any read/write operations to the DB is done through the `DBHandler` class:
+
+<img width="561" height="344" alt="UML_scraping-Page-2 drawio" src="https://github.com/user-attachments/assets/270e4f15-0471-4cbe-8188-6bbf31c84d0f" />
+
+The scraper visits and scrapes each page of the city-level purchase listing pages without visiting and scraping each property-level listing page. 
+
+For ethical scraping, a sleep time of 2 seconds was added between each webpage scrape:
+
+https://github.com/jangboolee/amsterdam-housing-2025/blob/5b8a818f576e2e77dc7ec06b2a61a19523dd12e9/src/scraping/city_scraper.py#L360-L362
+
 ## Prediction
 
 Using scraped data, a `LightGBM` model was trained to predict asking prices using the following features:
@@ -30,7 +50,7 @@ The trained model is not very accurate due to limited training data and features
 
 * Static map
   
-  <img width="5420" height="3570" alt="median_per_postcode4" src="https://github.com/user-attachments/assets/5d0c4f7a-ceb4-40f5-a0d3-5e10e9d75203" />
+  <img width="5420" height="3570" alt="median_per_postcode4" src="https://github.com/user-attachments/assets/893c8678-bea9-4842-beb0-5ca047e4f2ed" />
 
 * Interactive map
 
@@ -40,7 +60,7 @@ The trained model is not very accurate due to limited training data and features
 
 * Static map
 
-  <img width="5419" height="3575" alt="median_per_postcode6" src="https://github.com/user-attachments/assets/4271e3d6-31e1-4f03-94eb-87fd3692898c" />
+  <img width="5419" height="3575" alt="median_per_postcode6" src="https://github.com/user-attachments/assets/c9eaa334-e8f7-4443-a4b6-4c71acb235a3" />
 
 * Interactive map
 
@@ -52,10 +72,6 @@ The trained model is not very accurate due to limited training data and features
   * Most 6-digit postcodes only contain a handful of listed properties, and many don't contain any listed properties at all, which makes grouping the data at the 4-digit postcode level more meaningful.
 * For true property values, purchase price should be used instead of asking price, but purchase price is not publicly available.
 * The scraping was only done on a city's property listing page (ex: [Amstedam koopwoningen listing page](https://www.pararius.nl/koopwoningen/amsterdam)), and not on individual property listing pages (ex: [property listing page for Zamenhofsraat 68](https://www.pararius.nl/huis-te-koop/amsterdam/ca317654/zamenhofstraat)). Therefore, only key attributes were retrieved per property, and many other attributes that can significantly impact a property's value (ex: erfpacht, energy label, VvE costs, terrace/garden availability, etc.) are not accounted for.
-
-## DB schema
-
-<img width="860" height="632" alt="amsterdam_scraping" src="https://github.com/user-attachments/assets/421cc1a9-7cd3-4583-b0ac-7340f711c85d" />
 
 ## Data sources
 
