@@ -129,17 +129,17 @@ def plot_postcode(df: pd.DataFrame, geojson_path: Path, column: str) -> bool:
             missing_kwds={"color": "lightgrey", "label": "No listings"},
         )
 
-        # Create postcode label based on coordinates for postcode4
+        # Create pricelabel based on coordinates
         if column == "Postcode4":
             for idx, row in gdf_merged.iterrows():
                 plt.annotate(
-                    text=row[column],
+                    text=f"{row['price_per_sqm']:,.0f}",
                     xy=row["coords"],
                     horizontalalignment="center",
                     bbox=dict(facecolor="white", alpha=0.5, edgecolor="none"),
                 )
 
-        ax.set_title("Median asking price per sqm", fontsize=16)
+        ax.set_title("Amsterdam median asking price (€) per sqm", fontsize=16)
         ax.axis("off")
 
         # Dynamically set save path based on used column
