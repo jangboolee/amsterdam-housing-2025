@@ -59,7 +59,7 @@ class Orchestrator:
         return True
 
     def _start_scraper(self, scraper: CityScraper) -> int:
-        """Helper method to record the star ttime of a city scraper and start
+        """Helper method to record the start ttime of a city scraper and start
         scraping operations.
 
         Args:
